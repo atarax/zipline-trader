@@ -205,10 +205,16 @@ class AdjustedArray(object):
     )
 
     def __init__(self, data, adjustments, missing_value):
-        self._data, self._view_kwargs = _normalize_array(data, missing_value)
+        print('data')
+        print(data)
+        print('init adjusted array')
 
+        self._data, self._view_kwargs = _normalize_array(data, missing_value)
+        print('after normalize')
         self.adjustments = adjustments
+        print('after normalize 2')
         self.missing_value = missing_value
+        print('after normalize 3')
         self._invalidated = False
 
     def copy(self):

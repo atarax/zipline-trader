@@ -998,6 +998,12 @@ class BlazeLoader(implements(PipelineLoader)):
             if lower is not None:
                 predicate &= e[TS_FIELD_NAME] >= lower
 
+            print('upper')
+            print(upper_dt)
+            print('lower')
+            print(lower)
+            print('expr')
+            print(e)
             return odo(e[predicate][colnames], pd.DataFrame, **odo_kwargs)
 
         lower, materialized_checkpoints = get_materialized_checkpoints(
@@ -1034,6 +1040,8 @@ class BlazeLoader(implements(PipelineLoader)):
         all_rows[TS_FIELD_NAME] = all_rows[TS_FIELD_NAME].astype(
             'datetime64[ns]',
         )
+        #all_rows[TS_FIELD_NAME] = pd.to_datetime(all_rows[TS_FIELD_NAME], utc=True)
+
         all_rows.sort_values([TS_FIELD_NAME, AD_FIELD_NAME], inplace=True)
 
         if have_sids:
@@ -1182,5 +1190,5 @@ def ffill_query_in_range(expr,
         ),
         ignore_index=True,
     )
-    raw.loc[:, ts_field] = raw.loc[:, ts_field].astype('datetime64[ns]')
+
     return raw

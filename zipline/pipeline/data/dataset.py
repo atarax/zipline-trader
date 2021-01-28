@@ -53,7 +53,7 @@ class Column(object):
                 'dtype={}. Currency aware columns must have a float64 dtype.'
                 .format(currency_aware, dtype)
             )
-
+        
         self.dtype = dtype
         self.missing_value = missing_value
         self.doc = doc

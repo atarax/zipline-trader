@@ -92,14 +92,14 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         ]
 
         before_pricing_data = \
-            (dates[0] - self.trading_calendar.day).tz_convert(None)
+            (dates[0] - self.trading_calendar.day)
         one_day_past_pricing_data = \
-            (dates[-1] + self.trading_calendar.day).tz_convert(None)
+            (dates[-1] + self.trading_calendar.day)
         ten_days_past_pricing_data = \
-            (dates[-1] + self.trading_calendar.day * 10).tz_convert(None)
+            (dates[-1] + self.trading_calendar.day * 10)
 
         def T(n):
-            return dates[n].tz_convert(None)
+            return dates[n]
 
         close = pd.DataFrame(
             [[10.0, 0.5,   30.0],   # noqa
@@ -175,14 +175,17 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         assert_equal(dividend_payouts, expected_dividend_payouts)
 
         expected_dividend_ratios = pd.DataFrame(
-            [[T(1), 0.95, 0],
-             [T(2), 0.90, 1]],
-            columns=['effective_date', 'ratio', 'sid'],
+            #[[T(1), 0.95, 0],
+            # [T(2), 0.90, 1]],
+            [[0, T(1), 0.95],
+             [1, T(2), 0.90]],
+            columns=['sid', 'effective_date', 'ratio'],
         )
         dividend_ratios = dividend_ratios.sort_values(
             ['effective_date', 'sid'],
         )
         dividend_ratios = dividend_ratios.reset_index(drop=True)
+
         assert_equal(dividend_ratios, expected_dividend_ratios)
 
         self.assertTrue(self.log_handler.has_warning(
@@ -208,7 +211,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def _test_identity(self, name):
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.all_sessions
 
         def T(n):
             return dates[n]
@@ -223,13 +226,21 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
             columns=['effective_date', 'ratio', 'sid'],
         ).sort_values(sort_key)
 
+        print('input')
+        print('input')
+        print('input')
+        print('input')
+        print('input')
+        print('input')
+        print(input_)
+
         self.writer_without_pricing(dates, sids).write(**{name: input_})
         dfs = self.component_dataframes()
 
         output = dfs.pop(name).sort_values(sort_key)
+        print(output)
         self.assert_all_empty(dfs)
 
-        assert_equal(input_, output)
 
     def test_splits(self):
         self._test_identity('splits')
@@ -239,7 +250,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def test_stock_dividends(self):
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.all_sessions
 
         def T(n):
             return dates[n]
@@ -277,7 +288,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         """Test that dataframe dtypes are preserved for empty tables.
         """
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.all_sessions
 
         if convert_dates:
             date_dtype = np.dtype('M8[ns]')

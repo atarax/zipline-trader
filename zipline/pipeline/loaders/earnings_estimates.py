@@ -140,7 +140,6 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             estimates,
             name_map
         )
-
         self.estimates = estimates[
             estimates[EVENT_DATE_FIELD_NAME].notnull() &
             estimates[FISCAL_QUARTER_FIELD_NAME].notnull() &
@@ -237,7 +236,8 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
                 SHIFTED_NORMALIZED_QTRS,
             ],
         )
-        requested_qtr_data = stacked_last_per_qtr.loc[requested_qtr_idx]
+        #requested_qtr_data = stacked_last_per_qtr.loc[requested_qtr_idx]
+        requested_qtr_data = stacked_last_per_qtr.reindex(requested_qtr_idx)
         requested_qtr_data = requested_qtr_data.reset_index(
             SHIFTED_NORMALIZED_QTRS,
         )
@@ -275,7 +275,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         # The split-asof date is after the date index.
         if split_adjusted_asof_idx == len(dates):
             split_adjusted_asof_idx = len(dates) - 1
-        elif self._split_adjusted_asof < dates[0].tz_localize(None):
+        elif self._split_adjusted_asof < dates[0]:
             split_adjusted_asof_idx = -1
         return split_adjusted_asof_idx
 
@@ -323,10 +323,9 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             return
 
         next_qtr_start_indices = dates.searchsorted(
-            group[EVENT_DATE_FIELD_NAME].values,
+            pd.DatetimeIndex(group[EVENT_DATE_FIELD_NAME]),
             side=self.searchsorted_side,
         )
-
         qtrs_with_estimates = group.index.get_level_values(
             NORMALIZED_QUARTERS
         ).values
@@ -477,6 +476,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
 
         col_to_all_adjustments = {}
         sid_to_idx = dict(zip(assets, range(len(assets))))
+
         quarter_shifts.groupby(level=SID_FIELD_NAME).apply(
             self.get_adjustments_for_sid,
             dates,
@@ -643,7 +643,14 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             )
             for col in columns:
                 column_name = self.name_map[col.name]
+                print('col name here')
+                print(column_name)
+                print('to adjustments')
+                print(col_to_adjustments)
+                print('get')
+                print(col_to_adjustments.get(column_name))
                 # allocate the empty output with the correct missing value
+
                 output_array = np.full(
                     (len(dates), len(sids)),
                     col.missing_value,
@@ -651,24 +658,54 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
                 )
                 # overwrite the missing value with values from the computed
                 # data
+
+                if col.dtype == 'datetime64[ns]':
+                    pass
+                    #output_array = np.full(
+                    #    (len(dates), len(sids)),
+                    #    np.nan,
+                    #    dtype=col.dtype,
+                    #)
+
+                    #output_array[
+                    #    :,
+                    #    asset_indexer,
+                    #] = requested_qtr_data[column_name].values
+
+                    #print('here')
+                    #print(requested_qtr_data[column_name])
+                  
+                    requested_qtr_data[column_name] = requested_qtr_data[column_name].astype('datetime64[ns]')
+
+                
                 output_array[
                     :,
                     asset_indexer,
                 ] = requested_qtr_data[column_name].values
-                out[col] = AdjustedArray(
-                    output_array,
-                    # There may not be any adjustments at all (e.g. if
-                    # len(date) == 1), so provide a default.
-                    dict(col_to_adjustments.get(column_name, {})),
-                    col.missing_value,
-                )
+                
+                try:
+                    print('column name')
+                    print(column_name)
+                    print('what the fuck')
+                    out[col] = AdjustedArray(
+                        output_array,
+                        # There may not be any adjustments at all (e.g. if
+                        # len(date) == 1), so provide a default.
+                        dict(col_to_adjustments.get(column_name, {})),
+                        col.missing_value,
+                    )
+                except SystemError as e:
+                    print('sys error')
+                    print(dict(col_to_adjustments.get(column_name, {})))
+                    raise e
+                    exit()
+                
         return out
 
     def get_last_data_per_qtr(self,
                               assets_with_data,
                               columns,
-                              dates,
-                              data_query_cutoff_times):
+                              dates, data_query_cutoff_times):
         """
         Determine the last piece of information we know for each column on each
         date in the index for each sid and quarter.
@@ -720,7 +757,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             EVENT_DATE_FIELD_NAME,
         )
         stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
-            stacked_last_per_qtr[EVENT_DATE_FIELD_NAME]
+            stacked_last_per_qtr[EVENT_DATE_FIELD_NAME], utc=True
         )
         return last_per_qtr, stacked_last_per_qtr
 
@@ -738,7 +775,7 @@ class NextEarningsEstimatesLoader(EarningsEstimatesLoader):
                                       sid_idx,
                                       col_to_split_adjustments=None,
                                       split_adjusted_asof_idx=None):
-        return [self.array_overwrites_dict[column.dtype](
+        df = [self.array_overwrites_dict[column.dtype](
             0,
             next_qtr_start_idx - 1,
             sid_idx,
@@ -749,6 +786,7 @@ class NextEarningsEstimatesLoader(EarningsEstimatesLoader):
                 sid,
             ].values[:next_qtr_start_idx],
         )]
+        return df
 
     def get_shifted_qtrs(self, zero_qtrs, num_announcements):
         return zero_qtrs + (num_announcements - 1)
@@ -826,8 +864,19 @@ class PreviousEarningsEstimatesLoader(EarningsEstimatesLoader):
             An index of calendar dates, sid, and normalized quarters, for only
             the rows that have a previous event.
         """
+        event_date_compare = pd.DatetimeIndex(stacked_last_per_qtr[EVENT_DATE_FIELD_NAME])
+        if not event_date_compare.tzinfo:
+            event_date_compare = event_date_compare.tz_localize('utc')
+
         previous_releases_per_date = stacked_last_per_qtr.loc[
-            stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] <=
+            #stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] <=
+            event_date_compare <=
+            stacked_last_per_qtr.index.get_level_values(SIMULATION_DATES)
+        ]
+
+        previous_releases_per_date = stacked_last_per_qtr.loc[
+            #stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] <=
+            event_date_compare <=
             stacked_last_per_qtr.index.get_level_values(SIMULATION_DATES)
         ].groupby(
             level=[SIMULATION_DATES, SID_FIELD_NAME],

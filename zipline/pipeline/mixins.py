@@ -261,6 +261,9 @@ class LatestMixin(SingleInputMixin):
     window_length = 1
 
     def compute(self, today, assets, out, data):
+        print('latest compute')
+        print(today)
+        print(data)
         out[:] = data[-1]
 
     def _validate(self):

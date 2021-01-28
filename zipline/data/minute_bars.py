@@ -718,6 +718,8 @@ class BcolzMinuteBarWriter(object):
                 volume : float64|int64
             index : DatetimeIndex of market minutes.
         """
+        print('write sid')
+        print(df)
         cols = {
             'open': df.open.values,
             'high': df.high.values,
@@ -797,12 +799,17 @@ class BcolzMinuteBarWriter(object):
 
         all_minutes = self._minute_index
         # Get the latest minute we wish to write to the ctable
-        last_minute_to_write = pd.Timestamp(dts[-1], tz='UTC')
+        last_minute_to_write = pd.Timestamp(dts[-1])
+        if not last_minute_to_write.tzname():
+            last_minute_to_write = last_minute_to_write.tz_localize('utc')
 
         # In the event that we've already written some minutely data to the
         # ctable, guard against overwriting that data.
         if num_rec_mins > 0:
             last_recorded_minute = all_minutes[num_rec_mins - 1]
+            print('last recorded')
+            print(last_recorded_minute)
+            print(last_minute_to_write)
             if last_minute_to_write <= last_recorded_minute:
                 raise BcolzMinuteOverlappingData(dedent("""
                 Data with last_date={0} already includes input start={1} for
@@ -1358,7 +1365,7 @@ class H5MinuteBarUpdateWriter(object):
         with HDFStore(self._path, 'w',
                       complevel=self._complevel, complib=self._complib) \
                 as store:
-            panel = pd.Panel.from_dict(dict(frames))
+            panel = pd.concat(dict(frames), axis=1)
             panel.to_hdf(store, 'updates')
         with tables.open_file(self._path, mode='r+') as h5file:
             h5file.set_node_attr('/', 'version', 0)
@@ -1375,6 +1382,7 @@ class H5MinuteBarUpdateReader(MinuteBarUpdateReader):
     """
     def __init__(self, path):
         try:
+            print('create panel')
             self._panel = pd.read_hdf(path)
             return
         except TypeError:
@@ -1412,5 +1420,8 @@ class H5MinuteBarUpdateReader(MinuteBarUpdateReader):
             )
 
     def read(self, dts, sids):
-        panel = self._panel[sids, dts, :]
-        return panel.iteritems()
+        result = []
+        for sid in sids:
+            result.append((sid, self._panel[sid].loc[dts]))
+        
+        return iter(result)
