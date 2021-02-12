@@ -42,13 +42,11 @@ class PostgresDB:
         override it with this env variable: ZIPLINE_DATA_BACKEND_PORT
         :return:
         """
-        val = None
+        val = 5432
         if os.environ.get('ZIPLINE_DATA_BACKEND_PORT'):
             val = os.environ.get('ZIPLINE_DATA_BACKEND_PORT')
         elif CONFIG_PATH and self.pg.get('port'):
             val = self.pg.get('port')
-        if not val:
-            raise Exception("Postgres port not defined by user")
         return int(val)
 
     @property

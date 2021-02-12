@@ -17,13 +17,16 @@ multipledispatch>=0.6.0
 toolz>=0.8.2
 
 # Scientific Libraries
-numpy>=1.11.3
-pandas>=0.18.1,<=0.22
-pandas-datareader>=0.2.1,<0.9.0
+numpy==1.19.4
+pandas==1.1.5
+
+
+pandas-datareader>=0.9.0
 scipy>=0.17.1
 # Needed for parts of pandas.stats
 patsy>=0.4.0
 statsmodels>=0.6.1
+tiingo>=0.13
 
 # For financial risk calculations
 empyrical>=0.5.0
@@ -75,8 +78,3 @@ bcolz==1.2.1
 h5py==2.10.0
 html5lib==1.1
 beautifulsoup4==4.9.3
-# psql-backend
-psycopg2==2.8.6
-# alpha-vantage-bundle
-alpha_vantage==2.3.1
-ratelimit==2.2.1

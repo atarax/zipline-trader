@@ -315,7 +315,8 @@ def api_to_bundle(interval=['1m']):
                end_session,
                cache,
                show_progress,
-               output_dir
+               output_dir,
+               fundamentals_writer=None
                ):
 
         divs_splits = {'divs': pd.DataFrame(columns=['sid', 'amount',

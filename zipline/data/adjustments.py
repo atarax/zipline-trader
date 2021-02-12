@@ -576,7 +576,7 @@ class SQLiteAdjustmentWriter(object):
 
         amount = dividends.amount.values[mask]
         ratio = 1.0 - amount / previous_close
-
+        
         non_nan_ratio_mask = ~np.isnan(ratio)
         for ix in np.flatnonzero(~non_nan_ratio_mask):
             log.warn(

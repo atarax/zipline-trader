@@ -287,6 +287,7 @@ class TrueRange(CustomFactor):
         EquityPricing.close,
     )
     window_length = 2
+    window_safe = True
 
     def compute(self, today, assets, out, highs, lows, closes):
         high_to_low = highs[1:] - lows[1:]

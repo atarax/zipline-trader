@@ -34,6 +34,9 @@ from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
 
+from zipline.pipeline.loaders import PSQLFundamentalsLoader
+from zipline.pipeline.writers import PSQLFundamentalsWriter
+
 from sqlalchemy.exc import InvalidRequestError
 
 log = Logger(__name__)
@@ -175,7 +178,7 @@ RegisteredBundle = namedtuple(
 BundleData = namedtuple(
     'BundleData',
     'asset_finder equity_minute_bar_reader equity_daily_bar_reader '
-    'adjustment_reader',
+    'adjustment_reader fundamentals_loader',
 )
 
 BundleCore = namedtuple(
@@ -445,6 +448,7 @@ def _make_bundle_core():
                     )
                     daily_bar_reader = PSQLDailyBarReader(db_path_external)
                     minute_bar_writer = None
+                    fundamentals_writer = PSQLFundamentalsWriter(db_path_external)
                     try:
                         asset_finder = AssetFinder(db_path_external)
                     except InvalidRequestError:
@@ -473,6 +477,7 @@ def _make_bundle_core():
                         end_session,
                         minutes_per_day=bundle.minutes_per_day,
                     )
+                    fundamentals_writer = None
 
                 # Do an empty write to ensure that the daily ctables exist
                 # when we create the SQLiteAdjustmentWriter below. The
@@ -494,6 +499,7 @@ def _make_bundle_core():
                 minute_bar_writer = None
                 asset_db_writer = None
                 adjustment_db_writer = None
+                fundamentals_writer = None
                 if assets_versions:
                     raise ValueError('Need to ingest a bundle that creates '
                                      'writers in order to downgrade the assets'
@@ -511,6 +517,7 @@ def _make_bundle_core():
                 cache,
                 show_progress,
                 pth.data_path([name, timestr], environ=environ),
+                fundamentals_writer=fundamentals_writer
             )
 
             for version in sorted(set(assets_versions), reverse=True):
@@ -590,11 +597,13 @@ def _make_bundle_core():
             # adjustments_db_path = adjustment_db_path(name, timestr, environ=environ)
             daily_bar_reader = PSQLDailyBarReader(db_path_external)
             minute_bar_reader = None
+            fundamentals_loader = PSQLFundamentalsLoader(db_path_external)
         else:
             assets_db_path = asset_db_path(name, timestr, environ=environ)
             adjustments_db_path = adjustment_db_path(name, timestr, environ=environ)
             daily_bar_reader = BcolzDailyBarReader(daily_equity_path(name, timestr, environ=environ))
             minute_bar_reader = BcolzMinuteBarReader(minute_equity_path(name, timestr, environ=environ))
+            fundamentals_loader = None
 
         return BundleData(
             asset_finder=AssetFinder(
@@ -605,6 +614,7 @@ def _make_bundle_core():
             adjustment_reader=SQLiteAdjustmentReader(
                 adjustments_db_path
             ),
+            fundamentals_loader=fundamentals_loader
         )
 
     @preprocess(

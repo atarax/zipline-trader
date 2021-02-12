@@ -664,6 +664,7 @@ class PSQLDailyBarWriter(object):
 
         for asset_id, table in iterator:
             # when writing to db, drop timezone, will crash otherwise
+            table.index = table.index.tz_localize(None)
             if not table.empty:
                 table.index = table.index.tz_localize(None)
                 table.to_sql('ohlcv_daily', self.conn, if_exists='append')
@@ -774,7 +775,7 @@ class PSQLDailyBarWriter(object):
         edges is a query performed for sid in db. if it's empty it means the db doesn't contain data for this sid yet.
         :return: bool
         """
-        return not pd.isnull(edges['first_day'].iloc[0])
+        return not edges.empty
 
     def _get_exisiting_data_dates_from_db(self, sid):
         """

@@ -283,7 +283,7 @@ cpdef _read_tape_data(dict table,
         int nassets
         str column_name
         carray_t carray
-        ndarray[dtype=uint32_t, ndim=1] raw_data
+        ndarray[dtype=float64_t, ndim=1] raw_data
         ndarray[dtype=float64_t, ndim=2] outbuf
         ndarray[dtype=uint8_t, ndim=2, cast=True] where_nan
         ndarray[dtype=float64_t, ndim=2] outbuf_as_float
