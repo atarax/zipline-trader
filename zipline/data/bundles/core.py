@@ -585,10 +585,6 @@ def _make_bundle_core():
         bundle_data : BundleData
             The raw data readers for this bundle.
         """
-        if timestamp is None:
-            timestamp = pd.Timestamp.utcnow()
-        timestr = most_recent_data(name, timestamp, environ=environ)
-
         db_path_external = external_db_path(name, environ)
         if db_path_external:
             assets_db_path = db_path_external
@@ -599,6 +595,10 @@ def _make_bundle_core():
             minute_bar_reader = None
             fundamentals_loader = PSQLFundamentalsLoader(db_path_external)
         else:
+            if timestamp is None:
+                timestamp = pd.Timestamp.utcnow()
+            timestr = most_recent_data(name, timestamp, environ=environ)
+
             assets_db_path = asset_db_path(name, timestr, environ=environ)
             adjustments_db_path = adjustment_db_path(name, timestr, environ=environ)
             daily_bar_reader = BcolzDailyBarReader(daily_equity_path(name, timestr, environ=environ))

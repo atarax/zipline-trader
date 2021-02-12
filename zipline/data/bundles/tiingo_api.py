@@ -55,13 +55,11 @@ def tiingo_bundle(environ,
     """
     init_client()
 
-    assets = get_sp500()
+    #assets = get_sp500()
     #assets = get_nasdaq100()
 
-    #assets = ['AAPL']
-    assets = assets + ['SPY']
-    #assets = ['AAPL', 'TSLA', 'GOOGL', 'SPY']
-    #assets = 'ALL'
+    assets = ['AAPL','TSLA', 'GOOGL']
+    #assets = assets + ['SPY']
 
     metadata, assets_to_sids = tiingo_metadata(assets, asset_db_writer.asset_finder)
 
